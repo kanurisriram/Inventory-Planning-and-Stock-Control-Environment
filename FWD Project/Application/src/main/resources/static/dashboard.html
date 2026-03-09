@@ -327,7 +327,7 @@
 
     <script>
         // 🔥 HYBRID: /api/products + LocalStorage for everything else
-        const API_PRODUCTS = 'http://localhost:8080/api/products/all';
+      
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Dashboard ready - Products API + LocalStorage');
@@ -359,38 +359,47 @@
             }));
         }
 
-        // === PRODUCTS API FUNCTIONS (Your Spring Boot) ===
-        async function fetchProducts() {
-            try {
-                const response = await fetch(API_PRODUCTS);
-                if (!response.ok) throw new Error('API failed');
-                const products = await response.json();
-                console.log('🟢 Products loaded from API:', products.length);
-                return products;
-            } catch (error) {
-                console.log('🟡 Products API offline → localStorage');
-                return JSON.parse(localStorage.getItem('products') || '[]');
-            }
-        }
+// Define SEPARATE endpoints
+const API_PRODUCTS_GET  = 'http://localhost:8080/api/products/all';   // GET only
+const API_PRODUCTS_POST = 'http://localhost:8080/api/products';       // POST only
 
-        async function saveProduct(product) {
-            try {
-                const response = await fetch(API_PRODUCTS, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(product)
-                });
-                if (!response.ok) throw new Error('Save failed');
-                console.log('🟢 Product saved to API');
-                return await response.json();
-            } catch (error) {
-                console.log('🟡 Save failed → localStorage');
-                // Fallback to localStorage
-                let products = JSON.parse(localStorage.getItem('products') || '[]');
-                products.push(product);
-                localStorage.setItem('products', JSON.stringify(products));
-            }
-        }
+async function fetchProducts() {
+    try {
+        const response = await fetch(API_PRODUCTS_GET);  // ✅ GET /all
+        if (!response.ok) throw new Error('API failed');
+        const products = await response.json();
+        
+        // Cache API response
+        localStorage.setItem('products', JSON.stringify(products));
+        console.log('🟢 Products loaded from API:', products.length);
+        return products;
+    } catch (error) {
+        console.log('🟡 Products API offline → localStorage');
+        return JSON.parse(localStorage.getItem('products') || '[]');
+    }
+}
+
+async function saveProduct(product) {
+    try {
+        const response = await fetch(API_PRODUCTS_POST, {  // ✅ POST /products
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product)
+        });
+        if (!response.ok) throw new Error('Save failed');
+        console.log('🟢 Product saved to API');
+        
+        // Reload after save
+        return await fetchProducts();  // Refresh from API
+    } catch (error) {
+        console.log('🟡 Save failed → localStorage');
+        let products = JSON.parse(localStorage.getItem('products') || '[]');
+        product.id = Date.now();  // Add unique ID
+        products.push(product);
+        localStorage.setItem('products', JSON.stringify(products));
+        return products;
+    }
+}
 
         // === BULLETPROOF NAVIGATION ===
         function setupNavigation() {
@@ -436,47 +445,94 @@
         }
 
         // === PRODUCTS (API + LocalStorage) ===
-        async function addProduct() {
-            const name = document.getElementById('productName').value;
-            const price = parseFloat(document.getElementById('productPrice').value);
-            if (!name || !price || price <= 0) {
-                alert('Please enter valid name and price');
-                return;
-            }
-
-            const product = { name, price, date: new Date().toISOString().split('T')[0] };
-            await saveProduct(product);
-
-            document.getElementById('productName').value = '';
-            document.getElementById('productPrice').value = '';
-            await loadProducts();
+       // Safe storage helper
+function safeStorage(key, data = null) {
+    try {
+        if (data !== null) {
+            localStorage.setItem(key, JSON.stringify(data));
+            return true;
         }
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : [];
+    } catch(e) {
+        console.error('Storage error:', e);
+        return data !== null ? true : [];
+    }
+}
 
-        async function loadProducts() {
-            const products = await fetchProducts();
-            const table = document.querySelector('#productsTable tbody');
-            table.innerHTML = '';
+async function addProduct() {
+    const name = document.getElementById('productName').value.trim();
+    const price = parseFloat(document.getElementById('productPrice').value);
+    
+    if (!name || !price || price <= 0) {
+        alert('Please enter valid name and price > 0');
+        return;
+    }
 
-            products.forEach((product, index) => {
-                const row = table.insertRow();
-                row.innerHTML = `
-            <td>${product.name || product.productName}</td>
-            <td>₹${(product.price || product.productPrice)?.toLocaleString()}</td>
-            <td>${product.date || 'Today'}</td>
-            <td><button class="danger" onclick="deleteProduct(${index})">Delete</button></td>
-        `;
-                // Also save to localStorage as backup
-                localStorage.setItem('products', JSON.stringify(products));
-            });
-        }
+    const product = { 
+        id: Date.now(), // Unique ID!
+        name, 
+        price, 
+        date: new Date().toISOString().split('T')[0] 
+    };
+    
+    try {
+        await saveProduct(product);
+        document.getElementById('productName').value = '';
+        document.getElementById('productPrice').value = '';
+        await loadProducts();
+    } catch(e) {
+        console.error('Add failed:', e);
+    }
+}
 
-        async function deleteProduct(index) {
-            const products = await fetchProducts();
-            products.splice(index, 1);
-            localStorage.setItem('products', JSON.stringify(products)); // Update backup
-            // Note: Add DELETE /api/products/{id} to your Spring Boot later
-            await loadProducts();
-        }
+async function loadProducts() {
+    try {
+        const products = await fetchProducts();
+        const table = document.querySelector('#productsTable tbody');
+        if (!table) return;
+        
+        table.innerHTML = '';
+        
+        products.forEach(product => { // No index!
+            const row = table.insertRow();
+            row.innerHTML = `
+                <td>${product.name || product.productName || 'N/A'}</td>
+                <td style="text-align:right">₹${(product.price || product.productPrice || 0).toLocaleString()}</td>
+                <td style="text-align:center">${product.date || 'Today'}</td>
+                <td style="text-align:center">
+                    <button class="danger" onclick="deleteProduct(${product.id})" 
+                            style="padding:8px 16px;border-radius:20px">
+                        Delete
+                    </button>
+                </td>
+            `;
+        });
+        
+        // ✅ FIXED: Save ONCE outside loop
+        safeStorage('products', products);
+        console.log(`✅ Loaded ${products.length} products`);
+    } catch(e) {
+        console.error('Load failed:', e);
+    }
+}
+
+async function deleteProduct(productId) { // ID not index!
+    if (!confirm('Delete this product?')) return;
+    
+    try {
+        const products = await fetchProducts();
+        const updated = products.filter(p => p.id != productId);
+        
+        // ✅ FIXED: Safe single save
+        safeStorage('products', updated);
+        await loadProducts();
+        console.log('✅ Deleted product');
+    } catch(e) {
+        console.error('Delete failed:', e);
+    }
+}
+
 
         // === ALL YOUR OTHER FUNCTIONS (LocalStorage - UNCHANGED) ===
         function addCustomer() {
@@ -945,6 +1001,29 @@ document.getElementById('btn-add-new').onclick = function() {
     updateStats();
     console.log('✅ ALL BUTTONS + TABLE FIXED!');
 }, 1500);
+function updatePreview() {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        // Update preview elements safely
+        const elements = {
+            'previewBusinessName': user.shopname || "Your Business",
+            'previewBusinessEmail': user.email || "business@example.com", 
+            'previewBusinessPhone': user.phone || "+91 9876543210",
+            'previewGstRate': user.gstRate || "18%",
+            'previewAddress': user.address || "Hyderabad, Telangana"
+        };
+        
+        Object.entries(elements).forEach(([id, value]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        });
+        
+        console.log('✅ Profile preview updated');
+    } catch(e) {
+        console.log('Profile preview skipped');
+    }
+}
 
 
 
