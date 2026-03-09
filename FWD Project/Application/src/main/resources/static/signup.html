@@ -1,0 +1,128 @@
+<html>
+    <head>
+        <title>Signup</title>
+        <link rel="stylesheet" type="text/css" href="../CSS/signup.css">
+    </head>
+    <body>
+        <h1>Sign Up </h1>
+        <form id="signupForm" method="post">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br><br>
+            <label for="shopname">Shop Name:</label>
+            <input type="text" id="shopname" name="shopname" required><br><br>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br><br>
+            <label for="confirm_password">Confirm Password:</label>
+            <input type="password" id="confirm_password" name="confirm_password" required><br><br>
+            <input type="submit" value="Sign Up">
+            <label for="login"><br><br>
+                <a href="Loginpage.html">Already have an account? Login</a>
+            </label>
+            <label for="terms"><br><br>
+                <input type="checkbox" id="terms" name="terms" required> I agree to the <a href="/terms">Terms and Conditions</a>
+        </form>
+        <!-- OTP Verification Section -->
+
+        <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="profilePhone" placeholder="+91 9876543210">required
+        </div>
+
+        <div class="form-group">
+            <button onclick="sendOTP()">Send OTP</button>
+        </div>
+
+        <div class="form-group">
+            <label>Enter OTP</label>
+            <input type="text" id="otpInput" placeholder="Enter OTP">
+        </div>
+
+        <div class="form-group">
+            <button onclick="verifyOTP()">Verify OTP</button>
+        </div>
+<script>
+document.getElementById("signupForm").addEventListener("submit", function(e) {
+
+    e.preventDefault(); // stop page refresh
+
+    const username = document.getElementById("username").value.trim();
+    const shopname = document.getElementById("shopname").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm_password").value;
+
+    // 🔒 Basic Validation
+    if (username === "" || shopname === "" || email === "" || password === "") {
+        alert("All fields are required!");
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+    }
+
+    // 📦 Create user object
+    const user = {
+        username: username,
+        shopname: shopname,
+        email: email,
+        password: password
+    };
+
+    // 🔐 Check if account already exists
+    const existingUser = JSON.parse(localStorage.getItem("user"));
+
+    if (existingUser && existingUser.email === email) {
+        alert("Account already exists with this email!");
+        return;
+    }
+
+    // 💾 Store in browser
+    localStorage.setItem("user", JSON.stringify(user));
+
+    alert("Signup Successful!");
+
+    // 🔄 Redirect to login page
+    window.location.href = "dashboard.html";
+});
+function sendOTP(){
+
+    const phone = document.getElementById("profilePhone").value;
+
+    if(!phone){
+        alert("Enter phone number");
+        return;
+    }
+
+    const otp = Math.floor(100000 + Math.random()*900000);
+
+    localStorage.setItem("demoOTP", otp);
+
+    alert("Demo OTP: " + otp);
+
+}
+
+function verifyOTP(){
+
+    const otp = document.getElementById("otpInput").value;
+
+    const savedOTP = localStorage.getItem("demoOTP");
+
+    if(otp === savedOTP){
+
+        alert("Mobile verified successfully");
+
+    }else{
+
+        alert("Invalid OTP");
+
+    }
+
+}
+</script>
+
+    </body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Invoice Dashboard</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h2 { color: white; text-align: center; margin-bottom: 30px; font-size: 2.5em; }
+        
+        /* Stats Cards */
+        .stats { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+        .stat-card { 
+            flex: 1; min-width: 180px; background: rgba(255,255,255,0.95); 
+            padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            text-align: center; backdrop-filter: blur(10px); 
+        }
+        .stat-value { font-size: 2.5em; font-weight: bold; margin-bottom: 8px; }
+        .stat-value.positive { color: #27ae60 !important; }
+        .stat-label { color: #6c757d; font-size: 1.1em; }
+        
+        /* Buttons */
+        .buttons { display: flex; gap: 15px; margin-bottom: 40px; flex-wrap: wrap; }
+        .btn { 
+            flex: 1; padding: 18px 24px; border: none; border-radius: 15px; 
+            font-size: 1.2em; font-weight: 600; cursor: pointer; 
+            transition: all 0.3s ease; min-height: 65px;
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .btn-test { background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; }
+        .btn-recent { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+        .btn-export { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+        .btn-clear { background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: white; }
+        
+        /* Table */
+        .table-section { background: rgba(255,255,255,0.95); border-radius: 20px; padding: 30px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); backdrop-filter: blur(10px); }
+        .table-section h3 { color: #2c3e50; margin-bottom: 20px; font-size: 1.8em; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white; padding: 20px; text-align: left; font-weight: 600; }
+        td { padding: 18px 20px; border-bottom: 1px solid #eee; }
+        tr:hover { background: #f8f9ff; }
+        
+        /* Status Badge */
+        .status { padding: 8px 18px; border-radius: 25px; font-size: 14px; font-weight: 600; }
+        .status.positive { background: #d4edda; color: #155724; }
+        .status.negative { background: #f8d7da; color: #721c24; }
+        
+        /* Empty State */
+        .empty-state { 
+            text-align: center; padding: 80px 40px; background: rgba(255,255,255,0.1); 
+            border-radius: 25px; backdrop-filter: blur(15px); color: white; 
+            margin: 40px 0; border: 2px dashed rgba(255,255,255,0.3);
+        }
+        .empty-state h3 { font-size: 2.5em; margin-bottom: 20px; }
+        .empty-state p { font-size: 1.3em; opacity: 0.9; }
+        
+        @media (max-width: 768px) {
+            .stats, .buttons { flex-direction: column; }
+            .btn { min-height: 55px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- COMPLETE INVOICES DASHBOARD -->
+        <div id="invoices-page">
+            <h2>📄 Professional Invoice Generator</h2>
+            
+            <!-- Stats Cards -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalInvoices">0</div>
+                    <div class="stat-label">Total Invoices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pendingInvoices">₹0</div>
+                    <div class="stat-label">Pending Amount</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value positive" id="collectedAmount">₹0</div>
+                    <div class="stat-label">Collected</div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="buttons">
+                <button class="btn btn-test" onclick="generateTestData()">🧪 Add Test Data</button>
+                <button class="btn btn-recent" onclick="showRecentInvoices()">📋 Recent Invoices</button>
+                <button class="btn btn-export" onclick="exportToExcel()">📊 Export Excel</button>
+                <button class="btn btn-clear" onclick="clearAllData()">🗑️ Clear Data</button>
+            </div>
+            
+            <!-- Table Section -->
+            <div id="recentInvoicesSection" class="table-section" style="display: none;">
+                <h3>📊 Recent Invoices (Last 10)</h3>
+                <table id="invoicesTable">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th style="text-align: right;">Total</th>
+                            <th style="text-align: center;">Date</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="invoicePreview" class="empty-state">
+                <div style="font-size: 4em; margin-bottom: 20px;">🚀</div>
+                <h3>Professional Invoice Dashboard</h3>
+                <p>Click <strong>"🧪 Add Test Data"</strong> → then <strong>"📋 Recent Invoices"</strong><br>
+                Watch stats update + table populate instantly! ✨</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔥 COMPLETE BULLETPROOF JAVASCRIPT -->
+    <script>
+        let invoices = [];
+
+        // Load saved data on page load
+        window.addEventListener('load', function() {
+            try {
+                const saved = localStorage.getItem('invoices');
+                if (saved) {
+                    invoices = JSON.parse(saved);
+                    updateStats();
+                }
+            } catch (e) {
+                console.error('Storage load error:', e);
+                invoices = [];
+            }
+            console.log('✅ Dashboard loaded with', invoices.length, 'invoices');
+        });
+
+        // 🧪 Generate test data
+        function generateTestData() {
+            invoices = [
+                {number: 'INV-001', customer: 'ABC Trading Pvt Ltd', total: 12500, date: '2026-03-01T10:00:00Z', status: 'Paid', email: 'abc@company.com'},
+                {number: 'INV-002', customer: 'XYZ Solutions', total: 8500, date: '2026-02-28T14:30:00Z', status: 'Pending', email: 'xyz@tech.com'},
+                {number: 'INV-003', customer: 'Tech Innovators Ltd', total: 22000, date: '2026-02-25T09:15:00Z', status: 'Paid', email: 'tech@innovate.com'},
+                {number: 'INV-004', customer: 'Digital Corp', total: 15600, date: '2026-02-20T16:45:00Z', status: 'Pending', email: 'digital@corp.in'}
+            ];
+            localStorage.setItem('invoices', JSON.stringify(invoices));
+            updateStats();
+            alert(`✅ Added ${invoices.length} test invoices!\n💰 Pending: ₹24,100 | Collected: ₹34,500`);
+        }
+
+        // 🗑️ Clear all data
+        function clearAllData() {
+            if (confirm('🗑️ Delete ALL invoices? This cannot be undone.')) {
+                invoices = [];
+                localStorage.removeItem('invoices');
+                document.getElementById('recentInvoicesSection').style.display = 'none';
+                document.getElementById('invoicePreview').style.display = 'block';
+                updateStats();
+                alert('✅ All data cleared!');
+            }
+        }
+
+        // 📋 Show recent invoices
+        function showRecentInvoices() {
+            const tableSection = document.getElementById('recentInvoicesSection');
+            const preview = document.getElementById('invoicePreview');
+            
+            tableSection.style.display = 'block';
+            preview.style.display = 'none';
+            
+            loadRecentInvoices();
+        }
+
+        // 🔄 Load table
+        function loadRecentInvoices() {
+            const tbody = document.querySelector('#invoicesTable tbody');
+            tbody.innerHTML = '';
+            
+            const sorted = [...invoices].sort((a, b) => new Date(b.date) - new Date(a.date));
+            updateStats();
+            
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 50px; text-align: center; color: #6c757d; font-size: 1.2em;">📭 No invoices found. Click "Add Test Data" first!</td></tr>';
+                return;
+            }
+            
+            sorted.slice(0, 10).forEach(invoice => {
+                const row = tbody.insertRow();
+                const statusClass = invoice.status === 'Paid' ? 'positive' : 'negative';
+                row.innerHTML = `
+                    <td style="font-weight: 600; color: #2c3e50;">#${invoice.number}</td>
+                    <td style="color: #34495e;">${invoice.customer}</td>
+                    <td style="text-align: right; font-weight: bold; font-size: 1.1em; color: ${invoice.status === 'Paid' ? '#27ae60' : '#e74c3c'};">₹${invoice.total.toLocaleString()}</td>
+                    <td style="text-align: center; color: #7f8c8d;">${new Date(invoice.date).toLocaleDateString('en-IN')}</td>
+                    <td style="text-align: center;">
+                        <span class="status ${statusClass}">${invoice.status}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <button onclick="toggleStatus('${invoice.number}')" style="background: ${invoice.status === 'Paid' ? '#e74c3c' : '#27ae60'}; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            ${invoice.status === 'Paid' ? '↩️ Mark Unpaid' : '✅ Mark Paid'}
+                        </button>
+                    </td>
+                `;
+            });
+        }
+
+        // 📊 Update stats
+        function updateStats() {
+            document.getElementById('totalInvoices').textContent = invoices.length;
+            const pending = invoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + i.total, 0);
+            const collected = invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + i.total, 0);
+            document.getElementById('pendingInvoices').textContent = '₹' + pending.toLocaleString();
+            document.getElementById('collectedAmount').textContent = '₹' + collected.toLocaleString();
+        }
+
+        // Toggle status
+        function toggleStatus(invoiceNumber) {
+            const invoice = invoices.find(i => i.number === invoiceNumber);
+            if (invoice) {
+                invoice.status = invoice.status === 'Paid' ? 'Pending' : 'Paid';
+                localStorage.setItem('invoices', JSON.stringify(invoices));
+                loadRecentInvoices();
+            }
+        }
+
+        // 📊 Export Excel
+        function exportToExcel() {
+            if (invoices.length === 0) {
+                alert('⚠️ No invoices to export!');
+                return;
+            }
+            if (typeof XLSX === 'undefined') {
+                alert('❌ SheetJS library not loaded!');
+                return;
+            }
+            
+            const data = invoices.map(i => ({
+                'Invoice #': i.number,
+                'Customer': i.customer,
+                'Email': i.email || 'N/A',
+                'Total': '₹' + i.total,
+                'Status': i.status,
+                'Date': new Date(i.date).toLocaleDateString('en-IN')
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
+            XLSX.writeFile(wb, `Invoices_${new Date().toISOString().slice(0,10)}.xlsx`);
+            
+            alert(`✅ Excel exported! (${invoices.length} invoices)`);
+        }
+    </script>
+</body>
+</html>

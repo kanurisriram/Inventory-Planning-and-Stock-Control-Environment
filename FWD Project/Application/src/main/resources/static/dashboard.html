@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Invoice Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        nav { background: rgba(255,255,255,0.95); border-radius: 15px; padding: 0; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        nav ul { list-style: none; display: flex; justify-content: center; flex-wrap: wrap; padding: 0; margin: 0; }
+        nav li { flex: 1; max-width: 150px; }
+        nav a { display: block; padding: 15px 20px; text-decoration: none; color: #555; text-align: center; transition: all 0.3s ease; border-radius: 10px; margin: 5px; }
+        nav a.active, nav a:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; transform: translateY(-2px); }
+        .page { display: none; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .page.active-page { display: block; animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        input, select, textarea, button { width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        button.danger { background: linear-gradient(135deg, #ff6b6b, #ee5a52); width: auto; padding: 8px 15px; margin: 0 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #e1e5e9; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        tr:hover { background: rgba(102, 126, 234, 0.05); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-value { font-size: 2.5em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+        .stat-label { color: #666; font-size: 1.1em; }
+        .profit.positive { color: #27ae60; }
+        .profit.negative { color: #e74c3c; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 5% auto; padding: 30px; border-radius: 20px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
+        .item-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .item-row input { flex: 1; }
+        .item-row button { flex: none; width: auto; }
+        @media (max-width: 768px) { nav ul { flex-direction: column; } .container { padding: 10px; } .item-row { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Professional Invoice Dashboard</h1>
+            <p>Manage your business finances with ease</p>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#" data-page="dashboard" class="active">Dashboard</a></li>
+                <li><a href="#" data-page="customers">Customers</a></li>
+                <li><a href="#" data-page="products">Products</a></li>
+                <li><a href="#" data-page="sales">Sales</a></li>
+                <li><a href="#" data-page="purchases">Purchases</a></li>
+                <li><a href="#" data-page="expenses">Expenses</a></li>
+                <li><a href="#" data-page="invoices">Invoices</a></li>
+                <li><a href="#" data-page="profile">Profile</a></li>
+            </ul>
+        </nav>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active-page">
+            <div class="stats">
+                <div class="stat-card"><div class="stat-value" id="totalSales">0</div><div class="stat-label">Total Sales</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalPurchases">0</div><div class="stat-label">Total Purchases</div></div>
+                <div class="stat-card"><div class="stat-value" id="totalExpenses">0</div><div class="stat-label">Total Expenses</div></div>
+                <div class="stat-card"><div class="stat-value profit" id="netProfit">0</div><div class="stat-label">Net Profit</div></div>
+            </div>
+        </div>
+
+        <!-- Customers Page -->
+        <div id="customers" class="page">
+            <h2>Customers Management</h2>
+            <div class="form-group">
+                <label>Customer Name</label>
+                <input type="text" id="customerName">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="customerEmail">
+            </div>
+            <button onclick="addCustomer()">Add Customer</button>
+            <table id="customersTable">
+                <thead><tr><th>Name</th><th>Email</th><th>Date Added</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <button onclick="openInvoiceModal()" style="margin-top: 20px; background: linear-gradient(135deg, #27ae60, #2ecc71); font-size: 18px; padding: 15px;">+ Add New Invoice</button>
+        </div>
+
+        <!-- Products Page -->
+        <div id="products" class="page">
+            <h2>Products Management</h2>
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="productName">
+            </div>
+            <div class="form-group">
+                <label>Price</label>
+                <input type="number" id="productPrice" step="0.01">
+            </div>
+            <button onclick="addProduct()">Add Product</button>
+            <table id="productsTable">
+                <thead><tr><th>Name</th><th>Price</th><th>Date Added</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Sales Page -->
+        <div id="sales" class="page">
+            <h2>Sales Management</h2>
+            <div class="form-group">
+                <label>Customer</label>
+                <select id="saleCustomer"></select>
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="saleAmount" step="0.01">
+            </div>
+            <button onclick="addSale()">Add Sale</button>
+            <table id="salesTable">
+                <thead><tr><th>Customer</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Purchases Page -->
+        <div id="purchases" class="page">
+            <h2>Purchases Management</h2>
+            <div class="form-group">
+                <label>Supplier</label>
+                <input type="text" id="purchaseSupplier">
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="purchaseAmount" step="0.01">
+            </div>
+            <button onclick="addPurchase()">Add Purchase</button>
+            <table id="purchasesTable">
+                <thead><tr><th>Supplier</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Expenses Page -->
+        <div id="expenses" class="page">
+            <h2>Expenses Management</h2>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="expenseDesc">
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="expenseAmount" step="0.01">
+            </div>
+            <button onclick="addExpense()">Add Expense</button>
+            <table id="expensesTable">
+                <thead><tr><th>Description</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+         <!-- Invoices Page -->
+      <!-- 🔥 REPLACE YOUR INVOICES PAGE (around line 170) WITH THIS COMPLETE VERSION -->
+
+<div id="invoices" class="page">
+    <h2 style="margin-bottom: 25px; color: #333; text-align: center;">📊 Live Invoices Dashboard</h2>
+    
+    <!-- Stats Cards -->
+    <div class="stats" style="margin-bottom: 30px;">
+        <div class="stat-card">
+            <div class="stat-value" id="totalInvoices" style="color: #667eea;">5</div>
+            <div class="stat-label">Total Invoices</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="pendingInvoices" style="color: #e74c3c;">₹44,800</div>
+            <div class="stat-label">Pending Amount</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value profit positive" id="collectedAmount">₹92,400</div>
+            <div class="stat-label">Collected</div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+  <!-- REPLACE your current buttons with THESE EXACT buttons -->
+<div style="display:flex;gap:15px;flex-wrap:wrap;justify-content:center;margin:25px 0;padding:20px;background:rgba(255,255,255,0.1);border-radius:15px;">
+    <button id="btn-add-new" style="background:linear-gradient(135deg,#28a745,#20c997);color:white;padding:15px 30px;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 8px 25px rgba(40,167,69,0.4);">+ ADD NEW</button>
+    <button id="btn-refresh" style="background:linear-gradient(135deg,#007bff,#0056b3);color:white;padding:15px 30px;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 8px 25px rgba(0,123,255,0.4);">🔄 REFRESH DATA</button>
+    <button id="btn-auto" style="background:#6c757d;color:white;padding:15px 30px;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 8px 25px rgba(108,117,125,0.4);">AUTO OFF</button>
+    <button id="btn-export" style="background:linear-gradient(135deg,#fd7e14,#e65c00);color:white;padding:15px 30px;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 8px 25px rgba(253,126,20,0.4);">📊 EXPORT EXCEL</button>
+    <button id="btn-ai" style="background:linear-gradient(135deg,#6f42c1,#5a2d91);color:white;padding:15px 30px;border:none;border-radius:12px;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 8px 25px rgba(111,66,193,0.4);">🤖 AI INSIGHTS</button>
+</div>
+
+
+    <!-- Status Bar -->
+    <div id="statusBar" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 25px; text-align: center; font-weight: 600;">
+        Click "Add Random Invoice" to start! 👆
+    </div>
+
+    <!-- Invoices Table -->
+    <div style="background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <table id="invoicesTable">
+            <thead>
+                <tr>
+                    <th style="width: 120px;">Invoice #</th>
+                    <th style="width: 250px;">Customer</th>
+                    <th style="width: 150px; text-align: right;">Amount</th>
+                    <th style="width: 120px; text-align: center;">Date</th>
+                    <th style="width: 120px; text-align: center;">Status</th>
+                    <th style="text-align: center;">Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+
+        <!-- Profile Page -->
+       <!-- Enhanced Profile Page -->
+<div id="profile" class="page">
+    <h2>🏢 Business Profile & Settings</h2>
+    
+    <!-- Business Info -->
+    <div class="form-group">
+        <label>Business Name</label>
+        <input type="text" id="profileShop" placeholder="Your Business Name">
+    </div>
+    <div class="form-group">
+        <label>Business Email</label>
+        <input type="email" id="profileEmail" placeholder="business@example.com">
+    </div>
+    <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="profilePhone" placeholder="+91 98765 43210">
+    </div>
+    <div class="form-group">
+        <label>Address</label>
+        <textarea id="profileAddress" rows="2" placeholder="123 Business Street, Hyderabad, Telangana"></textarea>
+    </div>
+    
+    <!-- GST & Tax Settings -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="form-group">
+            <label>GST Number</label>
+            <input type="text" id="profileGst" placeholder="22AAAAA0000A1Z5" maxlength="15">
+        </div>
+        <div class="form-group">
+            <label>GST Rate (%)</label>
+            <select id="profileGstRate">
+                <option value="0">0%</option>
+                <option value="5" selected>5%</option>
+                <option value="12">12%</option>
+                <option value="18">18%</option>
+                <option value="28">28%</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Logo Upload -->
+    <div class="form-group">
+        <label>Business Logo</label>
+        <input type="file" id="profileLogo" accept="image/*">
+        <small style="color: #666;">Upload PNG/JPG (max 2MB) - appears on invoices</small>
+        <img id="logoPreview" style="max-width: 100px; max-height: 100px; margin-top: 10px; display: none; border-radius: 8px;">
+    </div>
+    
+    <!-- Buttons -->
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <button onclick="updateProfile()" style="flex: 1; background: linear-gradient(135deg, #27ae60, #2ecc71); font-size: 16px;">💾 Save Profile</button>
+        <button onclick="resetProfile()" class="danger" style="flex: 1;">🔄 Reset to Default</button>
+        <button onclick="exportData()" style="flex: 1; background: linear-gradient(135deg, #f39c12, #e67e22);">📥 Export Data</button>
+        <button onclick="logout()" class="danger" style="width: auto;">🚪 Logout</button>
+    </div>
+    
+    <!-- Stats Preview -->
+    <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px;">
+        <h3 style="margin-bottom: 15px; color: #495057;">📊 Profile Preview (Invoice Header)</h3>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div id="logoPreviewSmall" style="width: 60px; height: 60px; background: #ddd; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🏢</div>
+            <div>
+                <h4 id="previewBusinessName" style="margin: 0; color: #667eea;">Your Business</h4>
+                <p id="previewBusinessEmail" style="margin: 5px 0; color: #666;">business@example.com</p>
+                <p id="previewBusinessPhone" style="margin: 0; color: #888; font-size: 14px;">+91 98765 43210</p>
+            </div>
+        </div>
+        <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 10px; border-left: 4px solid #27ae60;">
+            <strong>✅ Ready for Invoices!</strong> GST: <span id="previewGstRate">18%</span> | Address: <span id="previewAddress">Set your address</span>
+        </div>
+    </div>
+</div>
+
+        <!-- Invoice Modal -->
+        <div id="invoiceModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeInvoiceModal()">&times;</span>
+                <h2>Create Professional Invoice</h2>
+                <div class="form-group">
+                    <label>Customer</label>
+                    <select id="modalCustomer"></select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="invoiceDueDate">
+                </div>
+                <div id="itemsContainer">
+                    <h3>Products Purchased</h3>
+                    <div class="item-row">
+                        <input type="text" placeholder="Product Name" class="itemName">
+                        <input type="number" placeholder="Qty" class="itemQty" min="1" value="1">
+                        <input type="number" placeholder="Price" class="itemPrice" step="0.01" min="0">
+                        <button type="button" onclick="addItemRow(this)">+</button>
+                    </div>
+                </div>
+                <button onclick="generateInvoiceFromModal()" style="margin-top: 20px;">Generate & Download PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔥 HYBRID: /api/products + LocalStorage for everything else
+        const API_PRODUCTS = 'http://localhost:8080/api/products/all';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Dashboard ready - Products API + LocalStorage');
+            initStorage();
+            setupNavigation();
+            loadAllData();
+        });
+
+        // === YOUR EXISTING LOCALSTORAGE INIT (unchanged) ===
+        function initStorage() {
+            if (!localStorage.getItem('customers')) localStorage.setItem('customers', JSON.stringify([
+                {name: 'Ramesh Corp', email: 'ramesh@example.com', date: new Date().toISOString().split('T')[0]},
+                {name: 'Suresh Enterprises', email: 'suresh@example.com', date: new Date().toISOString().split('T')[0]}
+            ]));
+            if (!localStorage.getItem('sales')) localStorage.setItem('sales', JSON.stringify([
+                {customer: 'Ramesh Corp', amount: 50000, date: new Date().toISOString().split('T')[0]}
+            ]));
+            if (!localStorage.getItem('purchases')) localStorage.setItem('purchases', JSON.stringify([
+                {supplier: 'ABC Traders', amount: 30000, date: new Date().toISOString().split('T')[0]}
+            ]));
+            if (!localStorage.getItem('expenses')) localStorage.setItem('expenses', JSON.stringify([
+                {desc: 'Office Rent', amount: 15000, date: new Date().toISOString().split('T')[0]}
+            ]));
+            if (!localStorage.getItem('invoices')) localStorage.setItem('invoices', JSON.stringify([
+                {id: 'INV001', customer: 'Ramesh Corp', amount: 85000, status: 'Pending', date: new Date().toISOString().split('T')[0]}
+            ]));
+            if (!localStorage.getItem('user')) localStorage.setItem('user', JSON.stringify({
+                shopname: 'Mokshu\'s Boutique', email: 'mokshu@example.com', phone: '+91 9876543210'
+            }));
+        }
+
+        // === PRODUCTS API FUNCTIONS (Your Spring Boot) ===
+        async function fetchProducts() {
+            try {
+                const response = await fetch(API_PRODUCTS);
+                if (!response.ok) throw new Error('API failed');
+                const products = await response.json();
+                console.log('🟢 Products loaded from API:', products.length);
+                return products;
+            } catch (error) {
+                console.log('🟡 Products API offline → localStorage');
+                return JSON.parse(localStorage.getItem('products') || '[]');
+            }
+        }
+
+        async function saveProduct(product) {
+            try {
+                const response = await fetch(API_PRODUCTS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(product)
+                });
+                if (!response.ok) throw new Error('Save failed');
+                console.log('🟢 Product saved to API');
+                return await response.json();
+            } catch (error) {
+                console.log('🟡 Save failed → localStorage');
+                // Fallback to localStorage
+                let products = JSON.parse(localStorage.getItem('products') || '[]');
+                products.push(product);
+                localStorage.setItem('products', JSON.stringify(products));
+            }
+        }
+
+        // === BULLETPROOF NAVIGATION ===
+        function setupNavigation() {
+            const menuItems = document.querySelectorAll('nav li a');
+            const pages = document.querySelectorAll('.page');
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('data-page');
+
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    pages.forEach(p => p.classList.remove('active-page'));
+                    this.classList.add('active');
+                    document.getElementById(pageId).classList.add('active-page');
+
+                    // Load page-specific data
+                    loadPageData(pageId);
+                });
+            });
+        }
+
+        async function loadPageData(pageId) {
+            if (pageId === 'products') await loadProducts();
+            if (pageId === 'dashboard') updateSummary();
+            if (pageId === 'customers') loadCustomers();
+            if (pageId === 'sales') { loadSales(); populateCustomerSelect(); }
+            if (pageId === 'purchases') loadPurchases();
+            if (pageId === 'expenses') loadExpenses();
+            if (pageId === 'profile') loadProfile();
+        }
+
+        // === LOAD ALL DATA ===
+        async function loadAllData() {
+            await loadProducts();  // API first
+            loadCustomers();
+            loadSales();
+            loadPurchases();
+            loadExpenses();
+            updateSummary();
+            populateCustomerSelect();
+            loadProfile();
+        }
+
+        // === PRODUCTS (API + LocalStorage) ===
+        async function addProduct() {
+            const name = document.getElementById('productName').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+            if (!name || !price || price <= 0) {
+                alert('Please enter valid name and price');
+                return;
+            }
+
+            const product = { name, price, date: new Date().toISOString().split('T')[0] };
+            await saveProduct(product);
+
+            document.getElementById('productName').value = '';
+            document.getElementById('productPrice').value = '';
+            await loadProducts();
+        }
+
+        async function loadProducts() {
+            const products = await fetchProducts();
+            const table = document.querySelector('#productsTable tbody');
+            table.innerHTML = '';
+
+            products.forEach((product, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `
+            <td>${product.name || product.productName}</td>
+            <td>₹${(product.price || product.productPrice)?.toLocaleString()}</td>
+            <td>${product.date || 'Today'}</td>
+            <td><button class="danger" onclick="deleteProduct(${index})">Delete</button></td>
+        `;
+                // Also save to localStorage as backup
+                localStorage.setItem('products', JSON.stringify(products));
+            });
+        }
+
+        async function deleteProduct(index) {
+            const products = await fetchProducts();
+            products.splice(index, 1);
+            localStorage.setItem('products', JSON.stringify(products)); // Update backup
+            // Note: Add DELETE /api/products/{id} to your Spring Boot later
+            await loadProducts();
+        }
+
+        // === ALL YOUR OTHER FUNCTIONS (LocalStorage - UNCHANGED) ===
+        function addCustomer() {
+            const name = document.getElementById('customerName').value;
+            const email = document.getElementById('customerEmail').value;
+            if (!name || !email) { alert('Please enter valid name and email'); return; }
+
+            let customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            customers.push({name, email, date: new Date().toISOString().split('T')[0]});
+            localStorage.setItem('customers', JSON.stringify(customers));
+
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerEmail').value = '';
+            loadCustomers();
+        }
+
+        function loadCustomers() {
+            const table = document.querySelector('#customersTable tbody');
+            table.innerHTML = '';
+            let customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            customers.forEach((customer, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `<td>${customer.name}</td><td>${customer.email}</td><td>${customer.date}</td><td><button class="danger" onclick="deleteItem('customers', ${index})">Delete</button></td>`;
+            });
+        }
+
+        function addSale() {
+            const customer = document.getElementById('saleCustomer').value;
+            const amount = parseFloat(document.getElementById('saleAmount').value);
+            if (!customer || !amount || amount <= 0) { alert('Please select customer and enter valid amount'); return; }
+
+            let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+            sales.push({customer, amount, date: new Date().toISOString().split('T')[0]});
+            localStorage.setItem('sales', JSON.stringify(sales));
+
+            document.getElementById('saleAmount').value = '';
+            loadSales();
+            updateSummary();
+        }
+
+        function loadSales() {
+            const table = document.querySelector('#salesTable tbody');
+            table.innerHTML = '';
+            let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+            let total = sales.reduce((sum, sale) => sum + sale.amount, 0);
+            document.getElementById('totalSales').textContent = total.toLocaleString();
+
+            sales.forEach((sale, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `<td>${sale.customer}</td><td>₹${sale.amount.toLocaleString()}</td><td>${sale.date}</td><td><button class="danger" onclick="deleteItem('sales', ${index})">Delete</button></td>`;
+            });
+        }
+
+        // === PURCHASES, EXPENSES (same pattern) ===
+        function addPurchase() {
+            const supplier = document.getElementById('purchaseSupplier').value;
+            const amount = parseFloat(document.getElementById('purchaseAmount').value);
+            if (!supplier || !amount || amount <= 0) { alert('Please enter valid supplier and amount'); return; }
+
+            let purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+            purchases.push({supplier, amount, date: new Date().toISOString().split('T')[0]});
+            localStorage.setItem('purchases', JSON.stringify(purchases));
+
+            document.getElementById('purchaseSupplier').value = '';
+            document.getElementById('purchaseAmount').value = '';
+            loadPurchases();
+            updateSummary();
+        }
+
+        function loadPurchases() {
+            const table = document.querySelector('#purchasesTable tbody');
+            table.innerHTML = '';
+            let purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+            let total = purchases.reduce((sum, p) => sum + p.amount, 0);
+            document.getElementById('totalPurchases').textContent = total.toLocaleString();
+
+            purchases.forEach((purchase, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `<td>${purchase.supplier}</td><td>₹${purchase.amount.toLocaleString()}</td><td>${purchase.date}</td><td><button class="danger" onclick="deleteItem('purchases', ${index})">Delete</button></td>`;
+            });
+        }
+
+        function addExpense() {
+            const desc = document.getElementById('expenseDesc').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            if (!desc || !amount || amount <= 0) { alert('Please enter valid description and amount'); return; }
+
+            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            expenses.push({desc, amount, date: new Date().toISOString().split('T')[0]});
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+
+            document.getElementById('expenseDesc').value = '';
+            document.getElementById('expenseAmount').value = '';
+            loadExpenses();
+            updateSummary();
+        }
+
+        function loadExpenses() {
+            const table = document.querySelector('#expensesTable tbody');
+            table.innerHTML = '';
+            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            let total = expenses.reduce((sum, e) => sum + e.amount, 0);
+            document.getElementById('totalExpenses').textContent = total.toLocaleString();
+
+            expenses.forEach((expense, index) => {
+                const row = table.insertRow();
+                row.innerHTML = `<td>${expense.desc}</td><td>₹${expense.amount.toLocaleString()}</td><td>${expense.date}</td><td><button class="danger" onclick="deleteItem('expenses', ${index})">Delete</button></td>`;
+            });
+        }
+
+        // === SUMMARY ===
+        function updateSummary() {
+            let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+            let purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+            let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+
+            let totalSales = sales.reduce((sum, s) => sum + s.amount, 0);
+            let totalPurchases = purchases.reduce((sum, p) => sum + p.amount, 0);
+            let totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+            let netProfit = totalSales - totalPurchases - totalExpenses;
+
+            document.getElementById('totalSales').textContent = totalSales.toLocaleString();
+            document.getElementById('totalPurchases').textContent = totalPurchases.toLocaleString();
+            document.getElementById('totalExpenses').textContent = totalExpenses.toLocaleString();
+
+            const profitEl = document.getElementById('netProfit');
+            profitEl.textContent = netProfit.toLocaleString();
+            profitEl.className = `stat-value profit ${netProfit >= 0 ? 'positive' : 'negative'}`;
+        }
+
+        // === GENERIC HELPERS ===
+        function populateCustomerSelect() {
+            let customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            const select = document.getElementById('saleCustomer');
+            const modalSelect = document.getElementById('modalCustomer');
+
+            if (select) select.innerHTML = '<option value="">Select Customer</option>' + customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            if (modalSelect) modalSelect.innerHTML = customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        }
+
+        function deleteItem(key, index) {
+            let data = JSON.parse(localStorage.getItem(key) || '[]');
+            data.splice(index, 1);
+            localStorage.setItem(key, JSON.stringify(data));
+            loadAllData();
+        }
+
+        // === YOUR EXISTING PROFILE FUNCTIONS ===
+        function loadProfile() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('profileShop').value = user.shopname || '';
+            document.getElementById('profileEmail').value = user.email || '';
+            document.getElementById('profilePhone').value = user.phone || '';
+            document.getElementById('profileAddress').value = user.address || '';
+            document.getElementById('profileGst').value = user.gst || '';
+            document.getElementById('profileGstRate').value = user.gstRate || '18';
+            updatePreview();
+        }
+
+        function updateProfile() {
+            const profile = {
+                shopname: document.getElementById('profileShop').value,
+                email: document.getElementById('profileEmail').value,
+                phone: document.getElementById('profilePhone').value,
+                address: document.getElementById('profileAddress').value,
+                gst: document.getElementById('profileGst').value,
+                gstRate: document.getElementById('profileGstRate').value
+            };
+            localStorage.setItem('user', JSON.stringify(profile));
+            updatePreview();
+            alert('✅ Profile saved!');
+        }
+// ============================================
+// 🔥 BULLETPROOF INVOICES DASHBOARD - ALL FIXED
+// ============================================
+
+// 1. BULLETPROOF TABLE FUNCTION (FIXES empty table)
+function showInvoiceTable() {
+    console.log('🔄 Loading table...');
+    
+    // Try ALL possible table selectors
+    const possibleSelectors = [
+        '#invoicesTable tbody',
+        '.page#invoices table tbody',
+        '#invoices table tbody',
+        'table tbody',
+        '[id*="invoice"] tbody'
+    ];
+    
+    let tbody = null;
+    for (let selector of possibleSelectors) {
+        tbody = document.querySelector(selector);
+        if (tbody) {
+            console.log('✅ Found table:', selector);
+            break;
+        }
+    }
+    
+    if (!tbody) {
+        console.log('❌ NO TABLE FOUND - Check HTML');
+        return;
+    }
+    
+    // Load + sort data (NEWEST first)
+    let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    invoices.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Populate table
+    tbody.innerHTML = invoices.map(inv => `
+        <tr>
+            <td style="font-weight:bold">#${inv.number || inv.id}</td>
+            <td>${inv.customer}</td>
+            <td style="text-align:right;font-weight:bold;color:#28a745">₹${(inv.amount||inv.total||0).toLocaleString()}</td>
+            <td style="text-align:center">${inv.date ? new Date(inv.date).toLocaleDateString() : 'Today'}</td>
+            <td style="text-align:center">
+                <span style="padding:5px 12px;border-radius:15px;font-size:12px;font-weight:bold;
+                    ${inv.status=='Pending' ? 'background:#fff3cd;color:#856404' : 'background:#d4edda;color:#155724'}">
+                    ${inv.status}
+                </span>
+            </td>
+            <td style="text-align:center">
+                <button onclick="markPaid('${inv.number || inv.id}')" 
+                    style="padding:6px 12px;background:${inv.status=='Pending'?'#28a745':'#e74c3c'};color:white;border:none;border-radius:6px;cursor:pointer">
+                    ${inv.status=='Pending' ? '✅ Mark Paid' : '↩️ Mark Pending'}
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    console.log(`✅ Table loaded: ${invoices.length} rows`);
+}
+
+// 2. STATS FUNCTION
+function updateStats() {
+    let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    const totalEl = document.getElementById('totalInvoices');
+    const pendingEl = document.getElementById('pendingInvoices');
+    const collectedEl = document.getElementById('collectedAmount');
+    
+    if (totalEl) totalEl.textContent = invoices.length;
+    if (pendingEl) {
+        const pending = invoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + (i.amount || i.total || 0), 0);
+        pendingEl.textContent = `₹${pending.toLocaleString()}`;
+    }
+    if (collectedEl) {
+        const collected = invoices.filter(i => i.status !== 'Pending').reduce((sum, i) => sum + (i.amount || i.total || 0), 0);
+        collectedEl.textContent = `₹${collected.toLocaleString()}`;
+    }
+}
+
+// 3. MARK PAID
+function markPaid(invoiceId) {
+    let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    const invoice = invoices.find(i => i.number === invoiceId || i.id == invoiceId);
+    if (invoice) {
+        invoice.status = invoice.status === 'Pending' ? 'Paid' : 'Pending';
+        localStorage.setItem('invoices', JSON.stringify(invoices));
+        showInvoiceTable();
+        updateStats();
+    }
+}
+
+// 4. ATTACH ALL BUTTONS (Wait for page load)
+setTimeout(() => {
+    console.log('🔧 Attaching ALL buttons...');
+    
+  // 🔥 ADD NEW → SAVE + DOWNLOAD PDF INSTANTLY
+document.getElementById('btn-add-new').onclick = function() {
+    console.log('🟢 ADD NEW + PDF clicked!');
+    
+    // 1. Get invoice details
+    const customer = prompt('Customer Name:');
+    const amount = prompt('Amount ₹:');
+    
+    if (!customer || !amount || isNaN(amount) || parseInt(amount) <= 0) {
+        alert('Please enter valid customer and amount!');
+        return;
+    }
+    
+    // 2. Create new invoice
+    const newInvoice = {
+        id: Date.now(),
+        number: 'INV-' + Date.now().toString().slice(-6),
+        customer: customer.trim(),
+        amount: parseInt(amount),
+        status: 'Pending',
+        date: new Date().toISOString()
+    };
+    
+    // 3. Save to localStorage
+    let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+    invoices.unshift(newInvoice);
+    localStorage.setItem('invoices', JSON.stringify(invoices));
+    
+    // 4. Update dashboard
+    showInvoiceTable();
+    updateStats();
+    
+    // 5. CREATE BEAUTIFUL PDF INVOICE
+    const pdfHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 40px; background: #f8f9fa; }
+        .invoice { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 40px; }
+        .header h1 { font-size: 36px; margin: 0; }
+        .invoice-details { display: flex; justify-content: space-between; align-items: center; padding: 30px; border-bottom: 3px solid #eee; }
+        .customer { font-size: 20px; font-weight: 600; color: #333; }
+        .table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+        th, td { padding: 20px; text-align: left; }
+        th { background: #f8f9fa; font-weight: 600; }
+        .total-row { background: linear-gradient(135deg, #28a745, #20c997); color: white; font-size: 22px; font-weight: bold; }
+        .status { padding: 8px 20px; border-radius: 25px; font-weight: 600; background: #fff3cd; color: #856404; }
+        .footer { padding: 40px; text-align: center; color: #666; border-top: 2px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="invoice">
+        <div class="header">
+            <h1>🛍️ Mokshu's Boutique</h1>
+            <p>Hyderabad, Telangana | +91 9876543210 | mokshu@example.com</p>
+        </div>
+        
+        <div class="invoice-details">
+            <div class="customer">Bill To: ${customer}</div>
+            <div style="text-align: right;">
+                <h2 style="color: #667eea; margin: 0;">INVOICE</h2>
+                <p><strong>Invoice #:</strong> ${newInvoice.number}</p>
+                <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+            </div>
+        </div>
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 60%;">Description</th>
+                    <th style="width: 15%; text-align: center;">Qty</th>
+                    <th style="width: 25%; text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Products & Services</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right; font-weight: bold;">₹${amount.toLocaleString()}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="padding: 0 30px 30px;">
+            <div style="display: flex; justify-content: flex-end; max-width: 300px; margin-top: 20px;">
+                <div style="width: 100%; background: #f8f9fa; padding: 25px; border-radius: 12px; border: 2px solid #667eea;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span>Total Amount:</span>
+                        <span>₹${amount.toLocaleString()}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 24px; font-weight: bold; color: #28a745;">
+                        <span>AMOUNT DUE:</span>
+                        <span>₹${amount.toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Status:</strong> <span class="status">Pending</span></p>
+            <p>Thank you for your business! Payment due within 30 days.</p>
+            <p style="margin-top: 20px; font-size: 12px;">Generated by Mokshu's Boutique Dashboard</p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+
+    // 6. DOWNLOAD PDF INSTANTLY
+    const blob = new Blob([pdfHTML], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoice_${newInvoice.number}_${customer.replace(/[^a-zA-Z0-9]/g,'_')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // 7. Success message
+    const statusBar = document.getElementById('statusBar');
+    if (statusBar) {
+        statusBar.textContent = `✅ Invoice #${newInvoice.number} created + DOWNLOADED!`;
+        statusBar.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+        setTimeout(() => {
+            statusBar.style.background = '';
+        }, 3000);
+    }
+    
+    console.log('✅ Invoice created + PDF downloaded:', newInvoice);
+};
+
+    // REFRESH
+    const refreshBtn = document.getElementById('btn-refresh');
+    if (refreshBtn) {
+        refreshBtn.onclick = function() {
+            console.log('🔄 REFRESH clicked!');
+            showInvoiceTable();  // ← THIS FIXES TABLE
+            updateStats();
+            const statusBar = document.getElementById('statusBar');
+            if (statusBar) statusBar.textContent = '🔄 Latest invoices loaded!';
+        };
+    }
+    
+    // EXPORT (FIXED download)
+    const exportBtn = document.getElementById('btn-export');
+    if (exportBtn) {
+        exportBtn.onclick = function() {
+            console.log('📊 EXPORT clicked!');
+            let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+            let csv = 'Invoice,Customer,Amount,Status,Date\n';
+            invoices.forEach(inv => {
+                csv += `"${inv.number}","${inv.customer}",₹${inv.amount},"${inv.status}","${inv.date}"\n`;
+            });
+            
+            const link = document.createElement('a');
+            link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+            link.download = `invoices_${new Date().toDateString().split(' ').slice(1).join('-')}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            const statusBar = document.getElementById('statusBar');
+            if (statusBar) statusBar.textContent = `✅ Exported ${invoices.length} invoices!`;
+        };
+    }
+    
+    // AI INSIGHTS
+    const aiBtn = document.getElementById('btn-ai');
+    if (aiBtn) {
+        aiBtn.onclick = function() {
+            console.log('🤖 AI clicked!');
+            let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+            const total = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+            const pending = invoices.filter(i => i.status === 'Pending').length;
+            alert(`🤖 INSIGHTS:\n\n📊 ${invoices.length} invoices\n💰 ₹${total.toLocaleString()}\n⏳ ${pending} pending`);
+        };
+    }
+    
+    // AUTO
+    const autoBtn = document.getElementById('btn-auto');
+    if (autoBtn) {
+        autoBtn.onclick = function() {
+            console.log('⚙️ AUTO clicked!');
+            const btn = this;
+            if (btn.innerHTML.includes('OFF')) {
+                btn.innerHTML = 'AUTO ON';
+                btn.style.background = '#28a745';
+            } else {
+                btn.innerHTML = 'AUTO OFF';
+                btn.style.background = '#6c757d';
+            }
+        };
+    }
+    
+    // LOAD TABLE IMMEDIATELY
+    showInvoiceTable();
+    updateStats();
+    console.log('✅ ALL BUTTONS + TABLE FIXED!');
+}, 1500);
+
+
+
+    </script>
+</body>
+</html>

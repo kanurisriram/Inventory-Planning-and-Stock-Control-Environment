@@ -1,0 +1,19 @@
+{
+  "name": "fwd-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dashboard.js",
+  "scripts": {
+    "test": "find . -type f -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -I{} node --check \"{}\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "crypto": "^1.0.1",
+    "express": "^5.2.1",
+    "nodemailer": "^8.0.1"
+  }
+}
