@@ -360,45 +360,42 @@
         }
 
 // Define SEPARATE endpoints
-const API_PRODUCTS_GET  = 'http://localhost:8080/api/products/all';   // GET only
-const API_PRODUCTS_POST = 'http://localhost:8080/api/products';       // POST only
+// Define SEPARATE endpoints
 
+const API_PRODUCTS_GET  = 'https://inventory-planning-and-stock-control.onrender.com/api/products/all';
+const API_PRODUCTS_POST = 'https://inventory-planning-and-stock-control.onrender.com/api/products';
 async function fetchProducts() {
-    try {
-        const response = await fetch(API_PRODUCTS_GET);  // ✅ GET /all
-        if (!response.ok) throw new Error('API failed');
-        const products = await response.json();
-        
-        // Cache API response
-        localStorage.setItem('products', JSON.stringify(products));
-        console.log('🟢 Products loaded from API:', products.length);
-        return products;
-    } catch (error) {
-        console.log('🟡 Products API offline → localStorage');
-        return JSON.parse(localStorage.getItem('products') || '[]');
-    }
+  try {
+    const response = await fetch(API_PRODUCTS_GET);
+    if (!response.ok) throw new Error('API failed');
+    const products = await response.json();
+
+    localStorage.setItem('products', JSON.stringify(products));
+    console.log('Products loaded from API:', products.length);
+
+    return products;
+  } catch (error) {
+    console.log('Products API offline -> localStorage');
+    return JSON.parse(localStorage.getItem('products') || '[]');
+  }
 }
 
 async function saveProduct(product) {
-    try {
-        const response = await fetch(API_PRODUCTS_POST, {  // ✅ POST /products
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(product)
-        });
-        if (!response.ok) throw new Error('Save failed');
-        console.log('🟢 Product saved to API');
-        
-        // Reload after save
-        return await fetchProducts();  // Refresh from API
-    } catch (error) {
-        console.log('🟡 Save failed → localStorage');
-        let products = JSON.parse(localStorage.getItem('products') || '[]');
-        product.id = Date.now();  // Add unique ID
-        products.push(product);
-        localStorage.setItem('products', JSON.stringify(products));
-        return products;
-    }
+  try {
+    const response = await fetch(API_PRODUCTS_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(product)
+    });
+
+    if (!response.ok) throw new Error('Save failed');
+
+    console.log('Product saved to API');
+
+    return await fetchProducts();
+  } catch (error) {
+    console.log('Save failed -> localStorage');
+  }
 }
 
         // === BULLETPROOF NAVIGATION ===
