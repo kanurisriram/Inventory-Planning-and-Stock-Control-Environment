@@ -34,3 +34,5 @@
 {"message":"Spring Boot started successfully","repository":"com.Inventory.Application.repository.ProductRepository$$SpringCGLIB$$0","timestamp":"1773050603360"}
 {"message":"Spring Boot started successfully","repository":"com.Inventory.Application.repository.ProductRepository$$SpringCGLIB$$0","timestamp":"1773050731408"}
 {"message":"Spring Boot started successfully","repository":"com.Inventory.Application.repository.ProductRepository$$SpringCGLIB$$0","timestamp":"1773051055543"}
+{"message":"Spring Boot started successfully","repository":"com.Inventory.Application.repository.ProductRepository$$SpringCGLIB$$0","timestamp":"1773064048393"}
+{"message":"Spring Boot started successfully","repository":"com.Inventory.Application.repository.ProductRepository$$SpringCGLIB$$0","timestamp":"1773112094012"}

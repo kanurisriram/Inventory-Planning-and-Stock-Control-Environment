@@ -1,51 +1,92 @@
-<html>
-    <head>
-        <title>Signup</title>
-        <link rel="stylesheet" type="text/css" href="../CSS/signup.css">
-    </head>
-    <body>
-        <h1>Sign Up </h1>
-        <form id="signupForm" method="post">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required><br><br>
-            <label for="shopname">Shop Name:</label>
-            <input type="text" id="shopname" name="shopname" required><br><br>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required><br><br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required><br><br>
-            <label for="confirm_password">Confirm Password:</label>
-            <input type="password" id="confirm_password" name="confirm_password" required><br><br>
-            <input type="submit" value="Sign Up">
-            <label for="login"><br><br>
-                <a href="Loginpage.html">Already have an account? Login</a>
-            </label>
-            <label for="terms"><br><br>
-                <input type="checkbox" id="terms" name="terms" required> I agree to the <a href="/terms">Terms and Conditions</a>
-        </form>
-        <!-- OTP Verification Section -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <link rel="stylesheet" href="../static/CSS/signup.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <div class="form-group">
-            <label>Phone Number</label>
-            <input type="tel" id="profilePhone" placeholder="+91 9876543210">required
-        </div>
+    <!-- SEO TITLE -->
+    <title>Sign Up | Invoice Dashboard - Inventory Planning and Stock Control Environment</title>
 
-        <div class="form-group">
-            <button onclick="sendOTP()">Send OTP</button>
-        </div>
+    <!-- SEO META TAGS -->
+    <meta name="description" content="Create an account for the Invoice Dashboard to manage customers, products, invoices, sales, purchases, and expenses easily.">
+    <meta name="keywords" content="invoice dashboard, signup, business management, inventory system, invoice generator">
+    <meta name="author" content="Invoice Dashboard System">
+    <meta name="robots" content="index, follow">
 
-        <div class="form-group">
-            <label>Enter OTP</label>
-            <input type="text" id="otpInput" placeholder="Enter OTP">
-        </div>
+    <!-- CANONICAL URL -->
+    <link rel="canonical" href="https://yourdomain.com/signup.html">
 
-        <div class="form-group">
-            <button onclick="verifyOTP()">Verify OTP</button>
-        </div>
+    <!-- SOCIAL MEDIA SEO -->
+    <meta property="og:title" content="Signup - Invoice Dashboard">
+    <meta property="og:description" content="Register your account to manage invoices, customers, and business finances easily.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourdomain.com/signup.html">
+
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="../CSS/signup.css">
+
+</head>
+
+<body>
+
+<h1>Create Your Invoice Dashboard Account</h1>
+
+<form id="signupForm" method="post">
+
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required><br><br>
+
+    <label for="shopname">Shop Name:</label>
+    <input type="text" id="shopname" name="shopname" required><br><br>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required><br><br>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required><br><br>
+
+    <label for="confirm_password">Confirm Password:</label>
+    <input type="password" id="confirm_password" name="confirm_password" required><br><br>
+
+    <input type="submit" value="Sign Up">
+
+    <br><br>
+
+    <a href="Loginpage.html">Already have an account? Login</a>
+
+    <br><br>
+
+    <input type="checkbox" id="terms" required>
+    I agree to the <a href="/terms">Terms and Conditions</a>
+
+</form>
+
+<!-- OTP Verification -->
+
+<h2>Mobile Verification</h2>
+
+<label>Phone Number</label>
+<input type="tel" id="profilePhone" placeholder="+91 9876543210">
+
+<br><br>
+
+<button onclick="sendOTP()">Send OTP</button>
+
+<br><br>
+
+<label>Enter OTP</label>
+<input type="text" id="otpInput" placeholder="Enter OTP"required>
+
+<br><br>
+
+<button onclick="verifyOTP()">Verify OTP</button>
+
 <script>
+
 document.getElementById("signupForm").addEventListener("submit", function(e) {
 
-    e.preventDefault(); // stop page refresh
+    e.preventDefault();
 
     const username = document.getElementById("username").value.trim();
     const shopname = document.getElementById("shopname").value.trim();
@@ -53,7 +94,6 @@ document.getElementById("signupForm").addEventListener("submit", function(e) {
     const password = document.getElementById("password").value;
     const confirmPassword = document.getElementById("confirm_password").value;
 
-    // 🔒 Basic Validation
     if (username === "" || shopname === "" || email === "" || password === "") {
         alert("All fields are required!");
         return;
@@ -64,7 +104,6 @@ document.getElementById("signupForm").addEventListener("submit", function(e) {
         return;
     }
 
-    // 📦 Create user object
     const user = {
         username: username,
         shopname: shopname,
@@ -72,7 +111,6 @@ document.getElementById("signupForm").addEventListener("submit", function(e) {
         password: password
     };
 
-    // 🔐 Check if account already exists
     const existingUser = JSON.parse(localStorage.getItem("user"));
 
     if (existingUser && existingUser.email === email) {
@@ -80,14 +118,15 @@ document.getElementById("signupForm").addEventListener("submit", function(e) {
         return;
     }
 
-    // 💾 Store in browser
     localStorage.setItem("user", JSON.stringify(user));
 
     alert("Signup Successful!");
 
-    // 🔄 Redirect to login page
     window.location.href = "dashboard.html";
+
 });
+
+
 function sendOTP(){
 
     const phone = document.getElementById("profilePhone").value;
@@ -112,17 +151,14 @@ function verifyOTP(){
     const savedOTP = localStorage.getItem("demoOTP");
 
     if(otp === savedOTP){
-
         alert("Mobile verified successfully");
-
     }else{
-
         alert("Invalid OTP");
-
     }
 
 }
+
 </script>
 
-    </body>
+</body>
 </html>
